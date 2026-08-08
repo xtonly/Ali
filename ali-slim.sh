@@ -1,4 +1,3 @@
-cat > ali-slim.sh << 'EOF'
 #!/bin/bash
 
 # ==========================================
@@ -17,9 +16,9 @@ echo -e "\n---> 正在执行极致空间瘦身 (跨版本适配中)..."
 # 修复因版本更替可能导致的依赖挂起
 apt-get --fix-broken install -y >/dev/null 2>&1
 
-# 强力卸载无用开发库、多语言包、旧版微码及无用硬件固件
+# 强力卸载无用开发库、多语言包、旧版微码、无用硬件固件及隐蔽编译工具链
 # (即使某些包在特定版本中不存在，apt 也会自动安全跳过)
-apt-get purge -y gcc-12 g++-12 cpp-12 libllvm16 libclang-cpp16 libclang-rt-16-dev libclang1-16 libicu-dev libstdc++-12-dev mdadm lvm2 multipath-tools firmware-linux-free intel-microcode iucode-tool libx265-* util-linux-locales >/dev/null 2>&1
+apt-get purge -y gcc-12 g++-12 cpp-12 libllvm16 libclang-cpp16 libclang-rt-16-dev libclang1-16 libicu-dev libstdc++-12-dev mdadm lvm2 multipath-tools firmware-linux-free intel-microcode iucode-tool libx265-* util-linux-locales git git-man libc6-dev linux-libc-dev dpkg-dev make build-essential >/dev/null 2>&1
 
 # 深度清扫所有连带的孤立依赖项
 apt-get autoremove -y --purge >/dev/null 2>&1
@@ -33,7 +32,7 @@ rm -rf /usr/share/doc/* /usr/share/man/* /usr/share/locale/*
 journalctl --vacuum-size=10M >/dev/null 2>&1
 
 # ==========================================
-# 3. 网络环境探测 (纯探测逻辑)
+# 3. 网络环境探测 (纯探测逻辑，不更改配置)
 # ==========================================
 echo -e "\n---> 正在探测 IPv6 连通性..."
 if ping6 -c 2 -W 2 2001:4860:4860::8888 >/dev/null 2>&1; then
@@ -123,7 +122,3 @@ echo -e "${CYAN}公网 IPv6: ${GREEN}${ipv6_info}${NC}"
 echo -e "${CYAN}网络 ASN : ${WHITE}${asn}${NC}"
 echo -e "${CYAN}地理位置 : ${WHITE}${location}${NC}"
 echo -e "$SEP"
-EOF
-
-chmod +x ali-slim.sh
-./ali-slim.sh

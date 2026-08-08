@@ -9,18 +9,23 @@ DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
 apt-get install -y curl iproute2 dnsutils
 
 # ==========================================
-# 2. 跨版本极致瘦身 (完美适配 Debian 12 & 13)
+# 2. 跨版本极致瘦身 (509M 终极破壁版)
 # ==========================================
 echo -e "\n---> 正在执行极致空间瘦身 (跨版本适配中)..."
 
 # 修复因版本更替可能导致的依赖挂起
 apt-get --fix-broken install -y >/dev/null 2>&1
 
-# 强力卸载无用开发库、多语言包、旧版微码、无用硬件固件及隐蔽编译工具链
-# (即使某些包在特定版本中不存在，apt 也会自动安全跳过)
+# 第一层：强力卸载无用开发库、多语言包、旧版微码及基础编译链
 apt-get purge -y gcc-12 g++-12 cpp-12 libllvm16 libclang-cpp16 libclang-rt-16-dev libclang1-16 libicu-dev libstdc++-12-dev mdadm lvm2 multipath-tools firmware-linux-free intel-microcode iucode-tool libx265-* util-linux-locales git git-man libc6-dev linux-libc-dev dpkg-dev make build-essential >/dev/null 2>&1
 
-# 深度清扫所有连带的孤立依赖项
+# 第二层：彻底铲除二进制工具链与物理键盘映射
+apt-get purge -y binutils binutils-common binutils-x86-64-linux-gnu xkb-data >/dev/null 2>&1
+
+# 第三层：终极通配符绝杀，移除 Python3 环境 (放弃防火墙等安全插件)
+apt-get purge -y python3* libpython3* >/dev/null 2>&1
+
+# 终极清扫：深度清理所有连带的孤立依赖项
 apt-get autoremove -y --purge >/dev/null 2>&1
 
 # 销毁包管理器缓存与所有无用的本地化说明文档

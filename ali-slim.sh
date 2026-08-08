@@ -1,23 +1,29 @@
 #!/bin/bash
 
 # ==========================================
+# 0. 修复由于极致清理导致的 apt 结构性报错
+# ==========================================
+mkdir -p /var/lib/apt/lists/partial
+apt-get clean >/dev/null 2>&1
+
+# ==========================================
 # 1. 更新系统与核心依赖
 # ==========================================
-echo -e "\n---> 正在更新系统软件包..."
+echo -e "\n---> 正在同步软件源并更新系统..."
 apt-get update -y
 DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
 apt-get install -y curl iproute2 dnsutils
 
 # ==========================================
-# 2. 跨版本极致瘦身 (509M 终极破壁版)
+# 2. 跨版本极致瘦身 (400M+ 破壁极限版)
 # ==========================================
 echo -e "\n---> 正在执行极致空间瘦身 (跨版本适配中)..."
 
 # 修复因版本更替可能导致的依赖挂起
 apt-get --fix-broken install -y >/dev/null 2>&1
 
-# 第一层：强力卸载无用开发库、多语言包、旧版微码及基础编译链
-apt-get purge -y gcc-12 g++-12 cpp-12 libllvm16 libclang-cpp16 libclang-rt-16-dev libclang1-16 libicu-dev libstdc++-12-dev mdadm lvm2 multipath-tools firmware-linux-free intel-microcode iucode-tool libx265-* util-linux-locales git git-man libc6-dev linux-libc-dev dpkg-dev make build-essential >/dev/null 2>&1
+# 第一层：强力卸载无用开发库、多语言包、旧版微码、基础编译链及庞大的内核头文件
+apt-get purge -y gcc-12 g++-12 cpp-12 libllvm16 libclang-cpp16 libclang-rt-16-dev libclang1-16 libicu-dev libstdc++-12-dev mdadm lvm2 multipath-tools firmware-linux-free intel-microcode iucode-tool libx265-* util-linux-locales git git-man libc6-dev linux-libc-dev dpkg-dev make build-essential linux-headers-* >/dev/null 2>&1
 
 # 第二层：彻底铲除二进制工具链与物理键盘映射
 apt-get purge -y binutils binutils-common binutils-x86-64-linux-gnu xkb-data >/dev/null 2>&1

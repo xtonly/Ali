@@ -1,6 +1,12 @@
 #!/bin/bash
 
 # ==========================================
+# 极速瘦身与系统优化脚本 (ali-slim.sh)
+# 版本：v3.1 极限破壁版 (物理雷达猎杀)
+# ==========================================
+SCRIPT_VERSION="v3.1 极限破壁版"
+
+# ==========================================
 # 0. 修复底层状态与 apt 结构性报错
 # ==========================================
 echo -e "\n---> 正在修复可能受损的包管理器状态..."
@@ -42,10 +48,13 @@ echo -e "\n---> 正在执行深层垃圾文件销毁与后台静默化..."
 # 彻底关闭并禁用 Debian 的后台自动下载更新定时器 (防止空间反弹)
 systemctl disable --now apt-daily.timer apt-daily-upgrade.timer >/dev/null 2>&1
 
-# 销毁包管理器缓存 (现在删掉后不会再被后台自动下回来了)
+# 销毁包管理器缓存 (删掉后不会再被后台自动下回来)
 apt-get clean
 apt-get autoclean >/dev/null 2>&1
 rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
+
+# 【v3.1 新增】彻底抹除 80MB 的二进制索引缓存
+rm -f /var/cache/apt/*.bin
 
 # 清理 /boot 目录下升级产生的多余备份镜像
 rm -f /boot/*.bak /boot/*.old /boot/initrd.img-*.bak >/dev/null 2>&1
@@ -142,6 +151,7 @@ country=$(curl -s --connect-timeout 3 ipinfo.io/country 2>/dev/null)
 location="${city} / ${country}"
 
 echo -e "$SEP"
+echo -e "${CYAN}脚本版本 : ${WHITE}${SCRIPT_VERSION}${NC}"
 echo -e "${CYAN}系统环境 : ${WHITE}${os_name}${NC}"
 echo -e "${CYAN}当前内核 : ${WHITE}${kernel_info}${NC}"
 echo -e "${CYAN}CPU 信息 : ${WHITE}${cpu_cores} Core(s) | ${cpu_model}${NC}"

@@ -35,14 +35,20 @@ apt-get purge -y python3* libpython3* >/dev/null 2>&1
 apt-get autoremove -y --purge >/dev/null 2>&1
 
 # ==========================================
-# 3. 终极无痕垃圾清理 (日志、缓存、临时文件)
+# 3. 终极无痕垃圾清理与后台静默化
 # ==========================================
-echo -e "\n---> 正在执行深层垃圾文件销毁..."
+echo -e "\n---> 正在执行深层垃圾文件销毁与后台静默化..."
 
-# 销毁包管理器缓存
+# 彻底关闭并禁用 Debian 的后台自动下载更新定时器 (防止空间反弹)
+systemctl disable --now apt-daily.timer apt-daily-upgrade.timer >/dev/null 2>&1
+
+# 销毁包管理器缓存 (现在删掉后不会再被后台自动下回来了)
 apt-get clean
 apt-get autoclean >/dev/null 2>&1
 rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
+
+# 清理 /boot 目录下升级产生的多余备份镜像
+rm -f /boot/*.bak /boot/*.old /boot/initrd.img-*.bak >/dev/null 2>&1
 
 # 暴力抹除所有本地化说明文档、帮助手册
 rm -rf /usr/share/doc/* /usr/share/man/* /usr/share/info/* /usr/share/locale/*

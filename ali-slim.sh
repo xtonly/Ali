@@ -1,9 +1,12 @@
 #!/bin/bash
 
 # ==========================================
-# 0. 修复由于极致清理导致的 apt 结构性报错
+# 0. 修复底层状态与 apt 结构性报错
 # ==========================================
+echo -e "\n---> 正在修复可能受损的包管理器状态..."
 mkdir -p /var/lib/apt/lists/partial
+dpkg --configure -a >/dev/null 2>&1
+apt-get --fix-broken install -y >/dev/null 2>&1
 apt-get clean >/dev/null 2>&1
 
 # ==========================================
@@ -17,13 +20,10 @@ apt-get install -y curl iproute2 dnsutils
 # ==========================================
 # 2. 跨版本极致瘦身 (400M+ 破壁极限版)
 # ==========================================
-echo -e "\n---> 正在执行极致空间瘦身 (跨版本适配中)..."
+echo -e "\n---> 正在执行极致空间瘦身 (剥皮抽筋式清理)..."
 
-# 修复因版本更替可能导致的依赖挂起
-apt-get --fix-broken install -y >/dev/null 2>&1
-
-# 第一层：强力卸载无用开发库、多语言包、旧版微码、基础编译链及庞大的内核头文件
-apt-get purge -y gcc-12 g++-12 cpp-12 libllvm16 libclang-cpp16 libclang-rt-16-dev libclang1-16 libicu-dev libstdc++-12-dev mdadm lvm2 multipath-tools firmware-linux-free intel-microcode iucode-tool libx265-* util-linux-locales git git-man libc6-dev linux-libc-dev dpkg-dev make build-essential linux-headers-* >/dev/null 2>&1
+# 第一层：强力卸载无用开发库、多语言包、旧版微码、基础编译链、庞大的内核头文件及冗余组件
+apt-get purge -y gcc-12 g++-12 cpp-12 libllvm16 libclang-cpp16 libclang-rt-16-dev libclang1-16 libicu-dev libstdc++-12-dev mdadm lvm2 multipath-tools firmware-linux-free intel-microcode iucode-tool libx265-* libz3-4 util-linux-locales git git-man libc6-dev linux-libc-dev dpkg-dev make build-essential linux-headers-* >/dev/null 2>&1
 
 # 第二层：彻底铲除二进制工具链与物理键盘映射
 apt-get purge -y binutils binutils-common binutils-x86-64-linux-gnu xkb-data >/dev/null 2>&1
@@ -34,16 +34,31 @@ apt-get purge -y python3* libpython3* >/dev/null 2>&1
 # 终极清扫：深度清理所有连带的孤立依赖项
 apt-get autoremove -y --purge >/dev/null 2>&1
 
-# 销毁包管理器缓存与所有无用的本地化说明文档
-apt-get clean
-rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
-rm -rf /usr/share/doc/* /usr/share/man/* /usr/share/locale/*
+# ==========================================
+# 3. 终极无痕垃圾清理 (日志、缓存、临时文件)
+# ==========================================
+echo -e "\n---> 正在执行深层垃圾文件销毁..."
 
-# 限制日志体积防膨胀
-journalctl --vacuum-size=10M >/dev/null 2>&1
+# 销毁包管理器缓存
+apt-get clean
+apt-get autoclean >/dev/null 2>&1
+rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
+
+# 暴力抹除所有本地化说明文档、帮助手册
+rm -rf /usr/share/doc/* /usr/share/man/* /usr/share/info/* /usr/share/locale/*
+
+# 销毁系统中所有历史打包的旧日志文件
+rm -f /var/log/*.gz /var/log/*.[0-9] /var/log/*-????????
+
+# 强制截断当前系统日志（最大保留 5MB，最近1天）
+journalctl --vacuum-size=5M >/dev/null 2>&1
+journalctl --vacuum-time=1d >/dev/null 2>&1
+
+# 清理临时目录
+rm -rf /tmp/* /var/tmp/*
 
 # ==========================================
-# 3. 网络环境探测 (纯探测逻辑，不更改配置)
+# 4. 网络环境探测 (纯探测逻辑，不更改配置)
 # ==========================================
 echo -e "\n---> 正在探测 IPv6 连通性..."
 if ping6 -c 2 -W 2 2001:4860:4860::8888 >/dev/null 2>&1; then
@@ -53,7 +68,7 @@ else
 fi
 
 # ==========================================
-# 4. 网络吞吐与 BBR 拥塞控制优化
+# 5. 网络吞吐与 BBR 拥塞控制优化
 # ==========================================
 echo -e "\n---> 正在配置 TCP 吞吐优化与 BBR..."
 cat > /etc/sysctl.d/99-vps-network.conf << 'SYSCTL_EOF'
@@ -70,7 +85,7 @@ SYSCTL_EOF
 sysctl --system >/dev/null 2>&1
 
 # ==========================================
-# 5. 生成系统与网络信息面板
+# 6. 生成系统与网络信息面板
 # ==========================================
 echo -e "\n---> 系统基础环境初始化与瘦身完成！"
 echo -e "正在收集系统信息生成面板，请稍候...\n"

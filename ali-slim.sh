@@ -1,31 +1,42 @@
 #!/bin/bash
 
-# ================================================
+# ==========================================
 # 极速瘦身与系统优化脚本 (ali-slim.sh)
-# 版本：瘦身优化 v4.2 终极无懈可击版 (全逻辑闭环)
-# ================================================
-SCRIPT_VERSION="v4.2 终极无懈可击版"
+# 版本：v4.3 终极封印版 (APT底层黑名单防复活)
+# ==========================================
+SCRIPT_VERSION="瘦身优化 v4.3 终极封印版"
 
-# ================================================
+# ==========================================
 # 0. 修复底层状态与 apt 结构性报错
-# ================================================
+# ==========================================
 echo -e "\n---> 正在修复可能受损的包管理器状态..."
 mkdir -p /var/lib/apt/lists/partial
 dpkg --configure -a >/dev/null 2>&1
 apt-get --fix-broken install -y >/dev/null 2>&1
 apt-get clean >/dev/null 2>&1
 
-# ================================================
-# 1. 更新系统与核心依赖
-# ================================================
+# ==========================================
+# 1. 部署系统级 APT 黑名单 (防面板幽灵复活)
+# ==========================================
+echo -e "\n---> 正在写入 APT 底层黑名单，永久封印流氓依赖..."
+mkdir -p /etc/apt/preferences.d/
+cat > /etc/apt/preferences.d/99-block-ghosts << 'EOF'
+Package: gcc* g++* cpp* llvm* libllvm* clang* mimic* mycroft*
+Pin: release *
+Pin-Priority: -1
+EOF
+
+# ==========================================
+# 2. 更新系统与核心依赖
+# ==========================================
 echo -e "\n---> 正在同步软件源并更新系统..."
 apt-get update -y
 DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
 apt-get install -y curl iproute2 dnsutils cron
 
-# ================================================
-# 2. 专项拦截与剿灭：面板流氓组件 (Mimic) 清理
-# ================================================
+# ==========================================
+# 3. 专项拦截与剿灭：面板流氓组件 (Mimic) 清理
+# ==========================================
 echo -e "\n---> 正在查杀自动拉取的 Mimic 组件及其残留..."
 
 if command -v docker &> /dev/null; then
@@ -42,17 +53,17 @@ fi
 apt-get purge -y mimic mimic3 >/dev/null 2>&1
 rm -rf $(which mimic 2>/dev/null) /usr/local/bin/mimic /usr/bin/mimic /usr/local/include/mimic /usr/local/lib/libmimic* >/dev/null 2>&1
 
-# ================================================
-# 3. 交换空间 (Swap) 纯净重置防冲突
-# ================================================
+# ==========================================
+# 4. 交换空间 (Swap) 纯净重置防冲突
+# ==========================================
 echo -e "\n---> 正在无痕清理并重置残留的 Swap 配置..."
 swapoff -a >/dev/null 2>&1
 sed -i '/swap/d' /etc/fstab
 rm -f /swapfile /var/swap /swap.img >/dev/null 2>&1
 
-# ================================================
-# 4. 跨版本极致瘦身 (强力压制反弹的编译链)
-# ================================================
+# ==========================================
+# 5. 跨版本极致瘦身 (强力压制反弹的编译链)
+# ==========================================
 echo -e "\n---> 正在执行极致空间瘦身 (剥皮抽筋式清理)..."
 
 apt-get purge -y gcc-12 g++-12 cpp-12 llvm-16* libllvm16 libclang-cpp16 libclang-rt-16-dev libclang1-16 libicu-dev libstdc++-12-dev mdadm lvm2 multipath-tools firmware-linux-free intel-microcode iucode-tool libx265-* libz3-4 util-linux-locales git git-man libc6-dev linux-libc-dev dpkg-dev make build-essential linux-headers-* >/dev/null 2>&1
@@ -60,9 +71,9 @@ apt-get purge -y binutils binutils-common binutils-x86-64-linux-gnu xkb-data >/d
 apt-get purge -y python3* libpython3* snapd >/dev/null 2>&1
 apt-get autoremove -y --purge >/dev/null 2>&1
 
-# ================================================
-# 5. 终极无痕垃圾清理与启动引导纠偏
-# ================================================
+# ==========================================
+# 6. 终极无痕垃圾清理与启动引导纠偏
+# ==========================================
 echo -e "\n---> 正在执行深层垃圾文件销毁与内核优先级纠偏..."
 
 systemctl disable --now apt-daily.timer apt-daily-upgrade.timer >/dev/null 2>&1
@@ -73,7 +84,6 @@ rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
 rm -f /var/cache/apt/*.bin
 
 rm -f /boot/*.bak /boot/*.old /boot/initrd.img-*.bak >/dev/null 2>&1
-# 更新 GRUB 引导记录，确保新安装的稳定版内核获取最高启动优先级
 if command -v update-grub &> /dev/null; then
     update-grub >/dev/null 2>&1
 fi
@@ -86,9 +96,9 @@ journalctl --vacuum-size=5M >/dev/null 2>&1
 journalctl --vacuum-time=1d >/dev/null 2>&1
 rm -rf /tmp/* /var/tmp/*
 
-# ================================================
-# 6. 部署自动化防御系统 (APT拦截器 & 定时任务)
-# ================================================
+# ==========================================
+# 7. 部署自动化防御系统 (APT拦截器 & 定时任务)
+# ==========================================
 echo -e "\n---> 正在注入 APT 缓存拦截器与 6:00/18:00 定时清道夫任务..."
 
 cat > /etc/apt/apt.conf.d/99-auto-clean-cache << 'EOF'
@@ -118,9 +128,9 @@ chmod 644 /etc/cron.d/system-reaper
 
 systemctl restart cron >/dev/null 2>&1 || systemctl restart crond >/dev/null 2>&1
 
-# ================================================
-# 7. 网络状态嗅探 (纯净检查模式，零侵入)
-# ================================================
+# ==========================================
+# 8. 网络状态嗅探 (纯净检查模式，零侵入)
+# ==========================================
 echo -e "\n---> 正在纯净嗅探 IPv6 当前环境连通性..."
 if ping6 -c 2 -W 2 2001:4860:4860::8888 >/dev/null 2>&1; then
     echo -e "[√] 当前网络状态：IPv6 正常可用"
@@ -128,9 +138,9 @@ else
     echo -e "[!] 当前网络状态：IPv6 不可用"
 fi
 
-# ================================================
-# 8. 网络吞吐与 BBR 拥塞控制优化
-# ================================================
+# ==========================================
+# 9. 网络吞吐与 BBR 拥塞控制优化
+# ==========================================
 echo -e "\n---> 正在配置 TCP 吞吐优化与 BBR..."
 cat > /etc/sysctl.d/99-vps-network.conf << 'SYSCTL_EOF'
 net.core.default_qdisc = fq
@@ -145,9 +155,9 @@ SYSCTL_EOF
 
 sysctl --system >/dev/null 2>&1
 
-# ================================================
-# 9. 生成系统与网络信息面板
-# ================================================
+# ==========================================
+# 10. 生成系统与网络信息面板
+# ==========================================
 echo -e "\n---> 系统基础环境初始化与瘦身闭环完成！"
 echo -e "正在收集系统信息生成最终面板，请稍候...\n"
 

@@ -2,9 +2,9 @@
 
 # ==========================================
 # 极速瘦身与系统优化脚本 (ali-slim.sh)
-# 版本：v4.4 终极纯净版 (全逻辑静默防错)
+# 版本：v4.5 智能交互版 (定时任务自选管理)
 # ==========================================
-SCRIPT_VERSION="Ali瘦身 v4.4 终极纯净版"
+SCRIPT_VERSION="Ali 瘦身脚本 v4.5 智能交互版"
 
 # ==========================================
 # 0. 修复底层状态与 apt 结构性报错
@@ -39,23 +39,19 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y curl iproute2 dnsutils cron >/
 # ==========================================
 echo -e "\n---> 正在查杀自动拉取的 Mimic 组件及其专属账户..."
 
-# 3.1 清除 Docker 层容器与镜像
 if command -v docker &> /dev/null; then
     docker rm -f mimic >/dev/null 2>&1
     docker rmi mycroftai/mimic3 mycroftai/mimic >/dev/null 2>&1
 fi
 
-# 3.2 清除 Python 层模块
 if command -v pip &> /dev/null; then
     pip uninstall -y mimic mycroft-mimic3-tts >/dev/null 2>&1
 elif command -v pip3 &> /dev/null; then
     pip3 uninstall -y mimic mycroft-mimic3-tts >/dev/null 2>&1
 fi
 
-# 3.3 清除 APT 层软件包
 apt-get purge -y mimic mimic3 >/dev/null 2>&1
 
-# 3.4 清除 Mimic 专属用户与用户组 (静默探测防报错)
 if id -u mimic &>/dev/null; then
     userdel -r mimic >/dev/null 2>&1
 fi
@@ -63,7 +59,6 @@ if getent group mimic &>/dev/null; then
     groupdel mimic >/dev/null 2>&1
 fi
 
-# 3.5 清除底层二进制与头文件残留
 rm -rf $(which mimic 2>/dev/null) /usr/local/bin/mimic /usr/bin/mimic /usr/local/include/mimic /usr/local/lib/libmimic* >/dev/null 2>&1
 
 # ==========================================
@@ -85,11 +80,9 @@ apt-get purge -y python3* libpython3* snapd >/dev/null 2>&1
 apt-get autoremove -y --purge >/dev/null 2>&1
 
 # ==========================================
-# 6. 部署自动化防御系统 (APT拦截器 & 定时任务)
+# 6. 部署自动化防御系统 (智能定时任务管理)
 # ==========================================
-echo -e "\n---> 正在注入 APT 缓存拦截器与 6:00/18:00 定时清道夫任务..."
-
-# 拦截器设定
+echo -e "\n---> 正在配置 APT 缓存拦截器..."
 cat > /etc/apt/apt.conf.d/99-auto-clean-cache << 'EOF'
 APT::Keep-Downloaded-Packages "false";
 Dpkg::Post-Invoke { 
@@ -97,10 +90,7 @@ Dpkg::Post-Invoke {
 };
 EOF
 
-# 清除旧版任务
-rm -f /etc/cron.daily/daily-system-reaper
-
-# 生成清道夫核心脚本
+# 无论是否设置定时，始终生成清道夫核心脚本（方便您日后想手动清理时直接执行 system-reaper.sh）
 cat > /usr/local/bin/system-reaper.sh << 'EOF'
 #!/bin/bash
 apt-get autoremove -y --purge >/dev/null 2>&1
@@ -112,13 +102,57 @@ find /var/tmp -type f -atime +2 -delete >/dev/null 2>&1
 EOF
 chmod +x /usr/local/bin/system-reaper.sh
 
-# 注册 Cron 定时项
-cat > /etc/cron.d/system-reaper << 'EOF'
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+WHITE='\033[1;37m'
+PINK='\033[1;35m'
+NC='\033[0m'
+
+# 交互式定时任务菜单
+echo -e "\n${PINK}============================================================${NC}"
+echo -e "${CYAN}【系统清理定时任务管理】${NC}"
+echo -e "1) 开启定时双杀 (每天 06:00 和 18:00 自动执行) - ${GREEN}推荐${NC}"
+echo -e "2) 开启每日一杀 (每天凌晨 03:00 自动执行)"
+echo -e "3) 关闭并移除所有自动清理任务"
+echo -e "4) 保持现状 (跳过设置)"
+echo -e "${PINK}============================================================${NC}"
+
+# 带有15秒超时防卡死的读取机制，完美兼容 curl | bash
+cron_choice="4"
+read -t 15 -p "请输入选项 [1-4] (15秒无输入默认跳过): " input_choice < /dev/tty || true
+if [[ -n "$input_choice" ]]; then
+    cron_choice="$input_choice"
+fi
+
+rm -f /etc/cron.daily/daily-system-reaper >/dev/null 2>&1
+
+case "$cron_choice" in
+    1)
+        echo -e "${GREEN}-> 已设置：每天 06:00 和 18:00 后台执行清理。${NC}"
+        cat > /etc/cron.d/system-reaper << 'EOF'
 0 6,18 * * * root /usr/local/bin/system-reaper.sh >/dev/null 2>&1
 EOF
-chmod 644 /etc/cron.d/system-reaper
-
-systemctl restart cron >/dev/null 2>&1 || systemctl restart crond >/dev/null 2>&1
+        chmod 644 /etc/cron.d/system-reaper
+        systemctl restart cron >/dev/null 2>&1 || systemctl restart crond >/dev/null 2>&1
+        ;;
+    2)
+        echo -e "${GREEN}-> 已设置：每天 03:00 后台执行清理。${NC}"
+        cat > /etc/cron.d/system-reaper << 'EOF'
+0 3 * * * root /usr/local/bin/system-reaper.sh >/dev/null 2>&1
+EOF
+        chmod 644 /etc/cron.d/system-reaper
+        systemctl restart cron >/dev/null 2>&1 || systemctl restart crond >/dev/null 2>&1
+        ;;
+    3)
+        echo -e "${RED}-> 已移除：所有的自动清理任务已被取消。${NC}"
+        rm -f /etc/cron.d/system-reaper
+        systemctl restart cron >/dev/null 2>&1 || systemctl restart crond >/dev/null 2>&1
+        ;;
+    *)
+        echo -e "${WHITE}-> 跳过更改，保持当前定时任务状态。${NC}"
+        ;;
+esac
 
 # ==========================================
 # 7. 终极无痕垃圾清理与启动引导纠偏 (置底保障)
@@ -127,20 +161,17 @@ echo -e "\n---> 正在执行深层垃圾文件销毁与内核优先级纠偏..."
 
 systemctl disable --now apt-daily.timer apt-daily-upgrade.timer >/dev/null 2>&1
 
-# 内核引导重构
 rm -f /boot/*.bak /boot/*.old /boot/initrd.img-*.bak >/dev/null 2>&1
 if command -v update-grub &> /dev/null; then
     update-grub >/dev/null 2>&1
 fi
 
-# 系统软垃圾清除
 rm -rf /usr/share/doc/* /usr/share/man/* /usr/share/info/* /usr/share/locale/* >/dev/null 2>&1
 rm -f /var/log/*.gz /var/log/*.[0-9] /var/log/*-???????? >/dev/null 2>&1
 rm -rf /root/.cache/* /tmp/* /var/tmp/* >/dev/null 2>&1
 journalctl --vacuum-size=5M >/dev/null 2>&1
 journalctl --vacuum-time=1d >/dev/null 2>&1
 
-# 彻底销毁 APT 更新源与二进制缓存 (必须放在本模块最后一步)
 apt-get clean >/dev/null 2>&1
 apt-get autoclean >/dev/null 2>&1
 rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* /var/cache/apt/*.bin >/dev/null 2>&1
@@ -178,12 +209,6 @@ sysctl --system >/dev/null 2>&1
 echo -e "\n---> 系统基础环境初始化与瘦身闭环完成！"
 echo -e "正在收集系统信息生成最终面板，请稍候...\n"
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-CYAN='\033[0;36m'
-WHITE='\033[1;37m'
-PINK='\033[1;35m'
-NC='\033[0m'
 SEP="${PINK}------------------------------------------------------------${NC}"
 
 os_name=$(grep PRETTY_NAME /etc/os-release | cut -d '"' -f 2)

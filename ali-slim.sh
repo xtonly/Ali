@@ -1,80 +1,117 @@
 #!/bin/bash
 
-# ==================================================
-# Ali 极限瘦身与系统优化脚本 (ali-slim.sh)
-# 版本：Ali 极限瘦身与系统优化脚本 v3.2 (物理雷达猎杀)
-# ==================================================
-SCRIPT_VERSION="Ali 极限瘦身与系统优化脚本 v3.2"
+# ==========================================
+# 极速瘦身与系统优化脚本 (ali-slim.sh)
+# 版本：v4.1 定时双杀版 (6点/18点精确打击)
+# ==========================================
+SCRIPT_VERSION="v4.1 定时双杀版"
 
-# ==================================================
+# ==========================================
 # 0. 修复底层状态与 apt 结构性报错
-# ==================================================
+# ==========================================
 echo -e "\n---> 正在修复可能受损的包管理器状态..."
 mkdir -p /var/lib/apt/lists/partial
 dpkg --configure -a >/dev/null 2>&1
 apt-get --fix-broken install -y >/dev/null 2>&1
 apt-get clean >/dev/null 2>&1
 
-# ==================================================
+# ==========================================
 # 1. 更新系统与核心依赖
-# ==================================================
+# ==========================================
 echo -e "\n---> 正在同步软件源并更新系统..."
 apt-get update -y
 DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
-apt-get install -y curl iproute2 dnsutils
+apt-get install -y curl iproute2 dnsutils cron
 
-# ==================================================
-# 2. 跨版本极致瘦身 (400M+ 破壁极限版)
-# ==================================================
+# ==========================================
+# 2. 专项拦截与剿灭：面板流氓组件 (Mimic) 清理
+# ==========================================
+echo -e "\n---> 正在查杀自动拉取的 Mimic 组件及其残留..."
+
+if command -v docker &> /dev/null; then
+    docker rm -f mimic >/dev/null 2>&1
+    docker rmi mycroftai/mimic3 mycroftai/mimic >/dev/null 2>&1
+fi
+
+if command -v pip &> /dev/null; then
+    pip uninstall -y mimic mycroft-mimic3-tts >/dev/null 2>&1
+elif command -v pip3 &> /dev/null; then
+    pip3 uninstall -y mimic mycroft-mimic3-tts >/dev/null 2>&1
+fi
+
+apt-get purge -y mimic mimic3 >/dev/null 2>&1
+rm -rf $(which mimic 2>/dev/null) /usr/local/bin/mimic /usr/bin/mimic /usr/local/include/mimic /usr/local/lib/libmimic* >/dev/null 2>&1
+
+# ==========================================
+# 3. 跨版本极致瘦身 (强力压制反弹的编译链)
+# ==========================================
 echo -e "\n---> 正在执行极致空间瘦身 (剥皮抽筋式清理)..."
 
-# 第一层：强力卸载无用开发库、多语言包、旧版微码、基础编译链、庞大的内核头文件及冗余组件
-apt-get purge -y gcc-12 g++-12 cpp-12 libllvm16 libclang-cpp16 libclang-rt-16-dev libclang1-16 libicu-dev libstdc++-12-dev mdadm lvm2 multipath-tools firmware-linux-free intel-microcode iucode-tool libx265-* libz3-4 util-linux-locales git git-man libc6-dev linux-libc-dev dpkg-dev make build-essential linux-headers-* >/dev/null 2>&1
-
-# 第二层：彻底铲除二进制工具链与物理键盘映射
+apt-get purge -y gcc-12 g++-12 cpp-12 llvm-16* libllvm16 libclang-cpp16 libclang-rt-16-dev libclang1-16 libicu-dev libstdc++-12-dev mdadm lvm2 multipath-tools firmware-linux-free intel-microcode iucode-tool libx265-* libz3-4 util-linux-locales git git-man libc6-dev linux-libc-dev dpkg-dev make build-essential linux-headers-* >/dev/null 2>&1
 apt-get purge -y binutils binutils-common binutils-x86-64-linux-gnu xkb-data >/dev/null 2>&1
-
-# 第三层：终极通配符绝杀，移除 Python3 环境 (放弃防火墙等安全插件)
 apt-get purge -y python3* libpython3* >/dev/null 2>&1
-
-# 终极清扫：深度清理所有连带的孤立依赖项
 apt-get autoremove -y --purge >/dev/null 2>&1
 
-# ==================================================
-# 3. 终极无痕垃圾清理与后台静默化
-# ==================================================
+# ==========================================
+# 4. 终极无痕垃圾清理与后台静默化
+# ==========================================
 echo -e "\n---> 正在执行深层垃圾文件销毁与后台静默化..."
 
-# 彻底关闭并禁用 Debian 的后台自动下载更新定时器 (防止空间反弹)
 systemctl disable --now apt-daily.timer apt-daily-upgrade.timer >/dev/null 2>&1
 
-# 销毁包管理器缓存 (删掉后不会再被后台自动下回来)
 apt-get clean
 apt-get autoclean >/dev/null 2>&1
 rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
-
-# 【v3.1 新增】彻底抹除 80MB 的二进制索引缓存
 rm -f /var/cache/apt/*.bin
 
-# 清理 /boot 目录下升级产生的多余备份镜像
 rm -f /boot/*.bak /boot/*.old /boot/initrd.img-*.bak >/dev/null 2>&1
-
-# 暴力抹除所有本地化说明文档、帮助手册
 rm -rf /usr/share/doc/* /usr/share/man/* /usr/share/info/* /usr/share/locale/*
-
-# 销毁系统中所有历史打包的旧日志文件
 rm -f /var/log/*.gz /var/log/*.[0-9] /var/log/*-????????
 
-# 强制截断当前系统日志（最大保留 5MB，最近1天）
 journalctl --vacuum-size=5M >/dev/null 2>&1
 journalctl --vacuum-time=1d >/dev/null 2>&1
-
-# 清理临时目录
 rm -rf /tmp/* /var/tmp/*
 
-# ==================================================
-# 4. 网络环境探测 (纯探测逻辑，不更改配置)
-# ==================================================
+# ==========================================
+# 5. 部署自动化防御系统 (APT拦截器 & 6点/18点双杀任务)
+# ==========================================
+echo -e "\n---> 正在注入 APT 缓存拦截器与 6:00/18:00 定时清道夫任务..."
+
+# APT 拦截器：安装完成后立即强制销毁包缓存
+cat > /etc/apt/apt.conf.d/99-auto-clean-cache << 'EOF'
+APT::Keep-Downloaded-Packages "false";
+Dpkg::Post-Invoke { 
+    "rm -f /var/cache/apt/archives/*.deb /var/cache/apt/archives/partial/*.deb /var/cache/apt/*.bin || true"; 
+};
+EOF
+
+# 清除旧版本产生的冲突文件
+rm -f /etc/cron.daily/daily-system-reaper
+
+# 创建独立的系统清道夫脚本
+cat > /usr/local/bin/system-reaper.sh << 'EOF'
+#!/bin/bash
+apt-get autoremove -y --purge >/dev/null 2>&1
+apt-get clean >/dev/null 2>&1
+rm -f /var/cache/apt/*.bin >/dev/null 2>&1
+journalctl --vacuum-size=5M >/dev/null 2>&1
+find /tmp -type f -atime +2 -delete >/dev/null 2>&1
+find /var/tmp -type f -atime +2 -delete >/dev/null 2>&1
+EOF
+chmod +x /usr/local/bin/system-reaper.sh
+
+# 写入精确的 Cron 规则：每天 06:00 和 18:00 以后台身份静默执行
+cat > /etc/cron.d/system-reaper << 'EOF'
+0 6,18 * * * root /usr/local/bin/system-reaper.sh >/dev/null 2>&1
+EOF
+chmod 644 /etc/cron.d/system-reaper
+
+# 重启 cron 服务使精确时间规则立即生效
+systemctl restart cron >/dev/null 2>&1 || systemctl restart crond >/dev/null 2>&1
+
+# ==========================================
+# 6. 网络环境探测 (纯探测逻辑，不更改配置)
+# ==========================================
 echo -e "\n---> 正在探测 IPv6 连通性..."
 if ping6 -c 2 -W 2 2001:4860:4860::8888 >/dev/null 2>&1; then
     echo -e "[√] 当前网络状态：IPv6 正常可用"
@@ -82,9 +119,9 @@ else
     echo -e "[!] 当前网络状态：IPv6 不可用"
 fi
 
-# ==================================================
-# 5. 网络吞吐与 BBR 拥塞控制优化
-# ==================================================
+# ==========================================
+# 7. 网络吞吐与 BBR 拥塞控制优化
+# ==========================================
 echo -e "\n---> 正在配置 TCP 吞吐优化与 BBR..."
 cat > /etc/sysctl.d/99-vps-network.conf << 'SYSCTL_EOF'
 net.core.default_qdisc = fq
@@ -99,9 +136,9 @@ SYSCTL_EOF
 
 sysctl --system >/dev/null 2>&1
 
-# ==================================================
-# 6. 生成系统与网络信息面板
-# ==================================================
+# ==========================================
+# 8. 生成系统与网络信息面板
+# ==========================================
 echo -e "\n---> 系统基础环境初始化与瘦身完成！"
 echo -e "正在收集系统信息生成面板，请稍候...\n"
 

@@ -2,9 +2,9 @@
 
 # ==========================================
 # 极速瘦身与系统优化脚本 (ali-slim.sh)
-# 版本：v4.3 终极封印版 (APT底层黑名单防复活)
+# 版本：v4.4 终极纯净版 (全逻辑静默防错)
 # ==========================================
-SCRIPT_VERSION="瘦身优化 v4.3 终极封印版"
+SCRIPT_VERSION="Ali瘦身 v4.4 终极纯净版"
 
 # ==========================================
 # 0. 修复底层状态与 apt 结构性报错
@@ -30,27 +30,40 @@ EOF
 # 2. 更新系统与核心依赖
 # ==========================================
 echo -e "\n---> 正在同步软件源并更新系统..."
-apt-get update -y
-DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
-apt-get install -y curl iproute2 dnsutils cron
+apt-get update -y >/dev/null 2>&1
+DEBIAN_FRONTEND=noninteractive apt-get upgrade -y >/dev/null 2>&1
+DEBIAN_FRONTEND=noninteractive apt-get install -y curl iproute2 dnsutils cron >/dev/null 2>&1
 
 # ==========================================
 # 3. 专项拦截与剿灭：面板流氓组件 (Mimic) 清理
 # ==========================================
-echo -e "\n---> 正在查杀自动拉取的 Mimic 组件及其残留..."
+echo -e "\n---> 正在查杀自动拉取的 Mimic 组件及其专属账户..."
 
+# 3.1 清除 Docker 层容器与镜像
 if command -v docker &> /dev/null; then
     docker rm -f mimic >/dev/null 2>&1
     docker rmi mycroftai/mimic3 mycroftai/mimic >/dev/null 2>&1
 fi
 
+# 3.2 清除 Python 层模块
 if command -v pip &> /dev/null; then
     pip uninstall -y mimic mycroft-mimic3-tts >/dev/null 2>&1
 elif command -v pip3 &> /dev/null; then
     pip3 uninstall -y mimic mycroft-mimic3-tts >/dev/null 2>&1
 fi
 
+# 3.3 清除 APT 层软件包
 apt-get purge -y mimic mimic3 >/dev/null 2>&1
+
+# 3.4 清除 Mimic 专属用户与用户组 (静默探测防报错)
+if id -u mimic &>/dev/null; then
+    userdel -r mimic >/dev/null 2>&1
+fi
+if getent group mimic &>/dev/null; then
+    groupdel mimic >/dev/null 2>&1
+fi
+
+# 3.5 清除底层二进制与头文件残留
 rm -rf $(which mimic 2>/dev/null) /usr/local/bin/mimic /usr/bin/mimic /usr/local/include/mimic /usr/local/lib/libmimic* >/dev/null 2>&1
 
 # ==========================================
@@ -72,61 +85,65 @@ apt-get purge -y python3* libpython3* snapd >/dev/null 2>&1
 apt-get autoremove -y --purge >/dev/null 2>&1
 
 # ==========================================
-# 6. 终极无痕垃圾清理与启动引导纠偏
-# ==========================================
-echo -e "\n---> 正在执行深层垃圾文件销毁与内核优先级纠偏..."
-
-systemctl disable --now apt-daily.timer apt-daily-upgrade.timer >/dev/null 2>&1
-
-apt-get clean
-apt-get autoclean >/dev/null 2>&1
-rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
-rm -f /var/cache/apt/*.bin
-
-rm -f /boot/*.bak /boot/*.old /boot/initrd.img-*.bak >/dev/null 2>&1
-if command -v update-grub &> /dev/null; then
-    update-grub >/dev/null 2>&1
-fi
-
-rm -rf /usr/share/doc/* /usr/share/man/* /usr/share/info/* /usr/share/locale/*
-rm -f /var/log/*.gz /var/log/*.[0-9] /var/log/*-????????
-rm -rf /root/.cache/*
-
-journalctl --vacuum-size=5M >/dev/null 2>&1
-journalctl --vacuum-time=1d >/dev/null 2>&1
-rm -rf /tmp/* /var/tmp/*
-
-# ==========================================
-# 7. 部署自动化防御系统 (APT拦截器 & 定时任务)
+# 6. 部署自动化防御系统 (APT拦截器 & 定时任务)
 # ==========================================
 echo -e "\n---> 正在注入 APT 缓存拦截器与 6:00/18:00 定时清道夫任务..."
 
+# 拦截器设定
 cat > /etc/apt/apt.conf.d/99-auto-clean-cache << 'EOF'
 APT::Keep-Downloaded-Packages "false";
 Dpkg::Post-Invoke { 
-    "rm -f /var/cache/apt/archives/*.deb /var/cache/apt/archives/partial/*.deb /var/cache/apt/*.bin || true"; 
+    "rm -f /var/cache/apt/archives/*.deb /var/cache/apt/archives/partial/*.deb /var/cache/apt/*.bin /var/lib/apt/lists/* || true"; 
 };
 EOF
 
+# 清除旧版任务
 rm -f /etc/cron.daily/daily-system-reaper
 
+# 生成清道夫核心脚本
 cat > /usr/local/bin/system-reaper.sh << 'EOF'
 #!/bin/bash
 apt-get autoremove -y --purge >/dev/null 2>&1
 apt-get clean >/dev/null 2>&1
-rm -f /var/cache/apt/*.bin >/dev/null 2>&1
+rm -f /var/cache/apt/*.bin /var/lib/apt/lists/* >/dev/null 2>&1
 journalctl --vacuum-size=5M >/dev/null 2>&1
 find /tmp -type f -atime +2 -delete >/dev/null 2>&1
 find /var/tmp -type f -atime +2 -delete >/dev/null 2>&1
 EOF
 chmod +x /usr/local/bin/system-reaper.sh
 
+# 注册 Cron 定时项
 cat > /etc/cron.d/system-reaper << 'EOF'
 0 6,18 * * * root /usr/local/bin/system-reaper.sh >/dev/null 2>&1
 EOF
 chmod 644 /etc/cron.d/system-reaper
 
 systemctl restart cron >/dev/null 2>&1 || systemctl restart crond >/dev/null 2>&1
+
+# ==========================================
+# 7. 终极无痕垃圾清理与启动引导纠偏 (置底保障)
+# ==========================================
+echo -e "\n---> 正在执行深层垃圾文件销毁与内核优先级纠偏..."
+
+systemctl disable --now apt-daily.timer apt-daily-upgrade.timer >/dev/null 2>&1
+
+# 内核引导重构
+rm -f /boot/*.bak /boot/*.old /boot/initrd.img-*.bak >/dev/null 2>&1
+if command -v update-grub &> /dev/null; then
+    update-grub >/dev/null 2>&1
+fi
+
+# 系统软垃圾清除
+rm -rf /usr/share/doc/* /usr/share/man/* /usr/share/info/* /usr/share/locale/* >/dev/null 2>&1
+rm -f /var/log/*.gz /var/log/*.[0-9] /var/log/*-???????? >/dev/null 2>&1
+rm -rf /root/.cache/* /tmp/* /var/tmp/* >/dev/null 2>&1
+journalctl --vacuum-size=5M >/dev/null 2>&1
+journalctl --vacuum-time=1d >/dev/null 2>&1
+
+# 彻底销毁 APT 更新源与二进制缓存 (必须放在本模块最后一步)
+apt-get clean >/dev/null 2>&1
+apt-get autoclean >/dev/null 2>&1
+rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* /var/cache/apt/*.bin >/dev/null 2>&1
 
 # ==========================================
 # 8. 网络状态嗅探 (纯净检查模式，零侵入)

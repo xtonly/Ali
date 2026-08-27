@@ -2,9 +2,18 @@
 
 # ==========================================
 # 极速瘦身与系统优化脚本 (ali-slim.sh)
-# 版本：v4.5 智能交互版 (定时任务自选管理)
+# 版本：v4.6 智能交互版 (Swap与定时自选)
 # ==========================================
-SCRIPT_VERSION="Ali 瘦身脚本 v4.5 智能交互版"
+SCRIPT_VERSION="v4.6 智能交互版"
+
+# 全局颜色变量提取，供所有交互菜单使用
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+WHITE='\033[1;37m'
+PINK='\033[1;35m'
+NC='\033[0m'
+SEP="${PINK}------------------------------------------------------------${NC}"
 
 # ==========================================
 # 0. 修复底层状态与 apt 结构性报错
@@ -64,10 +73,29 @@ rm -rf $(which mimic 2>/dev/null) /usr/local/bin/mimic /usr/bin/mimic /usr/local
 # ==========================================
 # 4. 交换空间 (Swap) 纯净重置防冲突
 # ==========================================
-echo -e "\n---> 正在无痕清理并重置残留的 Swap 配置..."
-swapoff -a >/dev/null 2>&1
-sed -i '/swap/d' /etc/fstab
-rm -f /swapfile /var/swap /swap.img >/dev/null 2>&1
+echo -e "\n$SEP"
+echo -e "${CYAN}【交换空间 (Swap) 处理策略】${NC}"
+echo -e "1) 清理并重置残留的 Swap 配置 (无痕覆写) - ${GREEN}推荐${NC}"
+echo -e "2) 保留当前的 Swap 配置 (跳过清理)"
+echo -e "$SEP"
+
+swap_choice="1"
+read -t 15 -p "请输入选项 [1-2] (15秒无输入默认清理): " input_swap < /dev/tty || true
+if [[ -n "$input_swap" ]]; then
+    swap_choice="$input_swap"
+fi
+
+case "$swap_choice" in
+    2)
+        echo -e "${WHITE}-> 已选择：跳过清理，保留当前 Swap 配置。${NC}"
+        ;;
+    *)
+        echo -e "${GREEN}-> 正在无痕清理并重置残留的 Swap 配置...${NC}"
+        swapoff -a >/dev/null 2>&1
+        sed -i '/swap/d' /etc/fstab
+        rm -f /swapfile /var/swap /swap.img >/dev/null 2>&1
+        ;;
+esac
 
 # ==========================================
 # 5. 跨版本极致瘦身 (强力压制反弹的编译链)
@@ -90,7 +118,6 @@ Dpkg::Post-Invoke {
 };
 EOF
 
-# 无论是否设置定时，始终生成清道夫核心脚本（方便您日后想手动清理时直接执行 system-reaper.sh）
 cat > /usr/local/bin/system-reaper.sh << 'EOF'
 #!/bin/bash
 apt-get autoremove -y --purge >/dev/null 2>&1
@@ -102,23 +129,14 @@ find /var/tmp -type f -atime +2 -delete >/dev/null 2>&1
 EOF
 chmod +x /usr/local/bin/system-reaper.sh
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-CYAN='\033[0;36m'
-WHITE='\033[1;37m'
-PINK='\033[1;35m'
-NC='\033[0m'
-
-# 交互式定时任务菜单
-echo -e "\n${PINK}============================================================${NC}"
+echo -e "\n$SEP"
 echo -e "${CYAN}【系统清理定时任务管理】${NC}"
 echo -e "1) 开启定时双杀 (每天 06:00 和 18:00 自动执行) - ${GREEN}推荐${NC}"
 echo -e "2) 开启每日一杀 (每天凌晨 03:00 自动执行)"
 echo -e "3) 关闭并移除所有自动清理任务"
 echo -e "4) 保持现状 (跳过设置)"
-echo -e "${PINK}============================================================${NC}"
+echo -e "$SEP"
 
-# 带有15秒超时防卡死的读取机制，完美兼容 curl | bash
 cron_choice="4"
 read -t 15 -p "请输入选项 [1-4] (15秒无输入默认跳过): " input_choice < /dev/tty || true
 if [[ -n "$input_choice" ]]; then
@@ -208,8 +226,6 @@ sysctl --system >/dev/null 2>&1
 # ==========================================
 echo -e "\n---> 系统基础环境初始化与瘦身闭环完成！"
 echo -e "正在收集系统信息生成最终面板，请稍候...\n"
-
-SEP="${PINK}------------------------------------------------------------${NC}"
 
 os_name=$(grep PRETTY_NAME /etc/os-release | cut -d '"' -f 2)
 kernel_version=$(uname -r)
